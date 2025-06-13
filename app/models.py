@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from typing import Optional
+from werkzeug.security import generate_password_hash, check_password_hash
 import sqlalchemy as sa
 import sqlalchemy.orm as so
 from app import db
@@ -18,12 +19,25 @@ class User(db.Model):
         index=True,
         unique=True
     )
-    password_hash: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
+    password_hash: so.Mapped[Optional[str]] = so.mapped_column(
+        sa.String(256),
+        nullable=False
+    )
     posts: so.WriteOnlyMapped['Post'] = so.relationship(back_populates='author')
 
     def __repr__(self):
         return '<User {}>'.format(self.username)
     
+    def set_password(self, password: str):
+        """Хэширование пароля"""
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password: str) -> bool:
+        """Проверка пароля. Возвращает True/False"""
+        if self.password_hash is None:
+            return False
+        return check_password_hash(self.password_hash, password)
+
 
 class Post(db.Model):
     __tablenae__ = 'posts'
